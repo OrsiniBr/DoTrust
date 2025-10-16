@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Chat is ReentrancyGuard, Ownable, Pausable {
     using SafeERC20 for IERC20;
 
-    IERC20 public constant chatToken = IERC20(0x1b1823580654b007575923b751984901F57c4c7C);
+    IERC20 public constant chatToken = IERC20(0x18A4D5649bdD29E758C03aE70D0932f99321f91a);
 
     event Staked(address indexed user, uint256 tokenAmount);
     event Compensated(
