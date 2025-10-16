@@ -7,7 +7,7 @@ import {Token} from "../src/Token.sol";
 contract TokenScript is Script {
     Token public token;
     uint256 public initialSupply = 1000000000000000000000;
-    address public treasury = 0x1b1823580654b007575923b751984901F57c4c7C;
+    address public treasury = 0x379beF16d52ec8B2B033497287Ec911A777A1917;
    
     function run() public {
         vm.startBroadcast();
