@@ -45,7 +45,7 @@ const ChatHeader = () => {
           {!userHasDeposited && (
             <div className="badge badge-warning gap-1">
               <DollarSign className="w-3 h-3" />
-              $5 Required
+              $3 Required
             </div>
           )}
 
