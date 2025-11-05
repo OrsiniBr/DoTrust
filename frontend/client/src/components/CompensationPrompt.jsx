@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 
 const CompensationPrompt = ({ selectedUser }) => {
   const { getWinner, winners } = useChatStore();
-  const { authUser } = useAuthStore();
+  const { authUser } = useAuthStore(); 
   const compensate = useCompensate();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -20,29 +20,29 @@ const CompensationPrompt = ({ selectedUser }) => {
     if (isProcessing) return;
     setIsProcessing(true);
 
-    try {
-      // First trigger the compensation event on the server
-      await axiosInstance.post(`/game/compensate/${chatId}`);
+    // try {
+    //   // First trigger the compensation event on the server
+    //   await axiosInstance.post(`/game/compensate/${chatId}`);
 
-      // Then execute the on-chain compensation
-      const recipientAddress = authUser.walletAddress; // Assuming user has wallet address
-      const snubberAddress = selectedUser.walletAddress; // Assuming peer has wallet address
+    //   // Then execute the on-chain compensation
+    //   // const recipientAddress = authUser.walletAddress; // Assuming user has wallet address
+    //   // const snubberAddress = selectedUser.walletAddress; // Assuming peer has wallet address
 
-      if (!recipientAddress || !snubberAddress) {
-        toast.error("Wallet addresses not available");
-        return;
-      }
+    //   // if (!recipientAddress || !snubberAddress) {
+    //   //   toast.error("Wallet addresses not available");
+    //   //   return;
+    //   // }
 
-      const success = await compensate(recipientAddress, snubberAddress);
-      if (success) {
-        toast.success("Compensation processed successfully!");
-      }
-    } catch (error) {
-      console.error("Compensation error:", error);
-      toast.error("Failed to process compensation");
-    } finally {
-      setIsProcessing(false);
-    }
+    //     const success = await compensate();
+    //     if (success) {
+    //       toast.success("Compensation processed successfully!");
+    //     }
+    //   } catch (error) {
+    //     console.error("Compensation error:", error);
+    //     toast.error("Failed to process compensation");
+    //   } finally {
+    //     setIsProcessing(false);
+    //   }
   };
 
   if (!winner) return null;

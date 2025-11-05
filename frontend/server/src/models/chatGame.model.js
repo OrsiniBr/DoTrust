@@ -31,6 +31,9 @@ const chatGameSchema = new mongoose.Schema(
     refundTimerStartedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     refundTimerStartedAt: { type: Date },
     refundTimerExpiresAt: { type: Date },
+    // Life-line system fields
+    userALifeLinePoints: { type: Number, default: 5 },
+    userBLifeLinePoints: { type: Number, default: 5 },
   },
   { timestamps: true }
 );

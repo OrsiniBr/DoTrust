@@ -205,6 +205,16 @@ export const CHAT_ABI = [
         name: "recipient",
         type: "address",
       },
+      {
+        internalType: "uint256",
+        name: "nonce",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "signature",
+        type: "bytes",
+      },
     ],
     name: "compensate",
     outputs: [],
@@ -315,6 +325,16 @@ export const CHAT_ABI = [
         internalType: "address",
         name: "recipient",
         type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "nonce",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "signature",
+        type: "bytes",
       },
     ],
     name: "refund",

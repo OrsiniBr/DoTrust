@@ -1,4 +1,5 @@
 export const THEMES = [
+  "lemonade",
   "light",
   "dark",
   "cupcake",
@@ -24,7 +25,6 @@ export const THEMES = [
   "autumn",
   "business",
   "acid",
-  "lemonade",
   "night",
   "coffee",
   "winter",

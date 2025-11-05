@@ -1,6 +1,7 @@
 import Navbar from "./components/Navbar";
 
 import HomePage from "./pages/HomePage";
+import WelcomePage from "./pages/WelcomePage";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -26,6 +27,11 @@ const App = () => {
 
   console.log({ authUser });
 
+  // Check if user has accepted terms
+  const hasAcceptedTerms = localStorage.getItem("termsAccepted") === "true";
+  // Check if user is new (just signed up)
+  const isNewUser = localStorage.getItem("isNewUser") === "true";
+
   if (isCheckingAuth && !authUser)
     return (
       <div className="flex items-center justify-center h-screen">
@@ -38,11 +44,65 @@ const App = () => {
       <Navbar />
 
       <Routes>
-        <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
-        <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
-        <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
+        <Route
+          path="/"
+          element={
+            authUser ? (
+              hasAcceptedTerms ? (
+                <Navigate to="/chat" />
+              ) : isNewUser ? (
+                <WelcomePage />
+              ) : (
+                <Navigate to="/chat" />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/welcome"
+          element={
+            authUser ? (
+              hasAcceptedTerms ? (
+                <Navigate to="/chat" />
+              ) : isNewUser ? (
+                <WelcomePage />
+              ) : (
+                <Navigate to="/chat" />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            authUser ? (
+              hasAcceptedTerms ? (
+                <HomePage />
+              ) : (
+                <Navigate to="/welcome" />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/signup"
+          element={!authUser ? <SignUpPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/login"
+          element={!authUser ? <LoginPage /> : <Navigate to="/" />}
+        />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+        <Route
+          path="/profile"
+          element={authUser ? <ProfilePage /> : <Navigate to="/login" />}
+        />
       </Routes>
 
       <Toaster />

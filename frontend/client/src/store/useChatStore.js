@@ -13,6 +13,7 @@ export const useChatStore = create((set, get) => ({
   timers: {}, // { [peerId]: { startedAt, expiresAt, startedBy } } server-authoritative
   refundTimers: {}, // { [peerId]: { startedAt, expiresAt, startedBy } } for refund scenarios
   winners: {}, // Track winners for each chat
+  lifeLinePoints: {}, // { [peerId]: { myPoints: number, opponentPoints: number } }
 
   // Check if user has deposited for a specific chat
   hasDeposited: (chatId) => {
@@ -122,11 +123,25 @@ export const useChatStore = create((set, get) => ({
 
       const winners = { ...get().winners };
       if (res.data?.winner) winners[peerId] = res.data.winner;
+
+      // Update life-line points
+      const lifeLinePoints = { ...get().lifeLinePoints };
+      const isUserA = String(myId) === String(res.data.userA);
+      lifeLinePoints[peerId] = {
+        myPoints: isUserA
+          ? res.data.userALifeLinePoints ?? 5
+          : res.data.userBLifeLinePoints ?? 5,
+        opponentPoints: isUserA
+          ? res.data.userBLifeLinePoints ?? 5
+          : res.data.userALifeLinePoints ?? 5,
+      };
+
       set({
         deposits: { ...get().deposits, [peerId]: deposited },
         timers,
         refundTimers,
         winners,
+        lifeLinePoints,
       });
     } catch (e) {
       // ignore silently for now
@@ -238,8 +253,54 @@ export const useChatStore = create((set, get) => ({
       refundTimers[chatId] = null;
       set({ refundTimers });
       toast.info(
-        "Refund is now available! Recipient didn't stake back within 5 minutes."
+        "Refund is now available! Recipient didn't stake back within 1 minute."
       );
+    });
+
+    // Life-line updates
+    socket.on("lifeline:update", (payload) => {
+      const chatId = selectedUser._id;
+      const { authUser } = useAuthStore.getState();
+      const myId = authUser?._id;
+      const isMyUpdate = String(payload.userId) === String(myId);
+
+      const lifeLinePoints = { ...get().lifeLinePoints };
+      if (!lifeLinePoints[chatId]) {
+        lifeLinePoints[chatId] = { myPoints: 5, opponentPoints: 5 };
+      }
+
+      if (isMyUpdate) {
+        lifeLinePoints[chatId].myPoints = payload.remainingPoints;
+        toast.warning(
+          `Life-line deducted! -${payload.pointsDeducted} points. ${payload.reasoning}`
+        );
+      } else {
+        lifeLinePoints[chatId].opponentPoints = payload.remainingPoints;
+      }
+
+      set({ lifeLinePoints });
+    });
+
+    // Session forfeited (life-line points exhausted)
+    socket.on("session:forfeited", (payload) => {
+      const chatId = selectedUser._id;
+      const { authUser } = useAuthStore.getState();
+      const myId = authUser?._id;
+      const isWinner = String(payload.winnerId) === String(myId);
+
+      const winners = { ...get().winners };
+      winners[chatId] = payload.winnerId;
+      set({ winners });
+
+      if (isWinner) {
+        toast.success(
+          `Opponent ran out of life-line points! You can claim compensation.`
+        );
+      } else {
+        toast.error(
+          `You ran out of life-line points. Opponent can claim compensation.`
+        );
+      }
     });
   },
 
@@ -252,6 +313,8 @@ export const useChatStore = create((set, get) => ({
     socket.off("game:compensate");
     socket.off("refund:timer:start");
     socket.off("refund:available");
+    socket.off("lifeline:update");
+    socket.off("session:forfeited");
   },
 
   setSelectedUser: async (selectedUser) => {

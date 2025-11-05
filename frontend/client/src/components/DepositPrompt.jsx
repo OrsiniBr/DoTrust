@@ -119,12 +119,12 @@ const DepositPrompt = ({ selectedUser }) => {
     // 2. There are messages in this chat (they chatted)
     // 3. The game never started (recipient never staked back)
     // 4. No winner has been set (game never progressed to timer phase)
-    // 5. Refund timer has expired (5 minutes passed without recipient staking)
+    // 5. Refund timer has expired (1 minute passed without recipient staking)
     const hasMessages = messages && messages.length > 0;
     const winner = getWinner(chatId);
     const remainingTime = getRemainingTime(chatId);
 
-    // Check if refund timer has expired (5 minutes passed)
+    // Check if refund timer has expired (1 minute passed)
     const refundRemainingTime = getRefundRemainingTime(chatId);
     const refundTimerExpired = refundRemainingTime === 0;
 

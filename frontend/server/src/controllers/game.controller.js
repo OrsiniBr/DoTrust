@@ -1,7 +1,8 @@
 import { ChatGame, pairKey } from "../models/chatGame.model.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
+import { signCompensationMessage, signRefundMessage } from "../lib/signer.js";
 
-const ROUND_MS = 5 * 60 * 1000; // 5 minutes
+const ROUND_MS = 1 * 60 * 1000; // 1 minute
 
 function toPublic(game) {
   return {
@@ -23,6 +24,9 @@ function toPublic(game) {
     refundTimerExpiresAt: game.refundTimerExpiresAt
       ? game.refundTimerExpiresAt.toISOString()
       : null,
+    // Life-line points
+    userALifeLinePoints: game.userALifeLinePoints ?? 5,
+    userBLifeLinePoints: game.userBLifeLinePoints ?? 5,
     now: new Date().toISOString(),
   };
 }
@@ -194,6 +198,84 @@ export const triggerCompensation = async (req, res) => {
 
     res.json({ message: "Compensation triggered", payload });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * Generate signature for compensation
+ * POST /api/game/sign-compensate
+ * Body: { recipient, nonce, contractAddress, chainId }
+ */
+export const signCompensation = async (req, res) => {
+  try {
+    const { recipient, nonce, contractAddress, chainId } = req.body;
+
+    if (!recipient || nonce === undefined || !contractAddress || !chainId) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: recipient, nonce, contractAddress, chainId",
+      });
+    }
+
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      return res.status(500).json({ message: "Private key not configured" });
+    }
+
+    const signature = signCompensationMessage(
+      recipient,
+      nonce,
+      contractAddress,
+      chainId,
+      privateKey
+    );
+
+    res.json({
+      signature,
+      nonce,
+    });
+  } catch (err) {
+    console.error("Error signing compensation:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * Generate signature for refund
+ * POST /api/game/sign-refund
+ * Body: { recipient, nonce, contractAddress, chainId }
+ */
+export const signRefund = async (req, res) => {
+  try {
+    const { recipient, nonce, contractAddress, chainId } = req.body;
+
+    if (!recipient || nonce === undefined || !contractAddress || !chainId) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: recipient, nonce, contractAddress, chainId",
+      });
+    }
+
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      return res.status(500).json({ message: "Private key not configured" });
+    }
+
+    const signature = signRefundMessage(
+      recipient,
+      nonce,
+      contractAddress,
+      chainId,
+      privateKey
+    );
+
+    res.json({
+      signature,
+      nonce,
+    });
+  } catch (err) {
+    console.error("Error signing refund:", err);
     res.status(500).json({ message: err.message });
   }
 };

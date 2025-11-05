@@ -54,7 +54,7 @@ cron.schedule("*/30 * * * * *", async () => {
       const payload = {
         eligibleForRefund: String(game.refundTimerStartedBy),
         message:
-          "Recipient didn't stake back within 5 minutes. Refund is now available.",
+          "Recipient didn't stake back within 1 minute. Refund is now available.",
       };
       if (aSock) io.to(aSock).emit("refund:available", payload);
       if (bSock) io.to(bSock).emit("refund:available", payload);

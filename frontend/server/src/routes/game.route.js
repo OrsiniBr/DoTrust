@@ -7,6 +7,8 @@ import {
   onReplyStopRound,
   startRoundIfNeeded,
   triggerCompensation,
+  signCompensation,
+  signRefund,
 } from "../controllers/game.controller.js";
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.post("/start/:peerId", protectRoute, startRoundIfNeeded);
 router.post("/reply/:peerId", protectRoute, onReplyStopRound);
 router.post("/expire/:peerId", protectRoute, expireAndSetWinner);
 router.post("/compensate/:peerId", protectRoute, triggerCompensation);
+router.post("/sign-compensate", protectRoute, signCompensation);
+router.post("/sign-refund", protectRoute, signRefund);
 
 export default router;

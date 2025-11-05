@@ -4,13 +4,9 @@ import { LogOut, MessageSquare, Settings, User } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import useClaim from "../hooks/useClaim";
 
-
-
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
   const claim = useClaim();
-
-
 
   return (
     <header
@@ -20,7 +16,10 @@ const Navbar = () => {
       <div className="container mx-auto px-4 h-16">
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-all">
+            <Link
+              to="/chat"
+              className="flex items-center gap-2.5 hover:opacity-80 transition-all"
+            >
               <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-primary" />
               </div>
@@ -28,13 +27,14 @@ const Navbar = () => {
             </Link>
           </div>
 
-         
-
           <div className="flex items-center gap-2">
-             <button className="bg-blue-800 text-white p-3 rounded-lg" onClick={claim}>
-            Claim 15 DTT
+            <button
+              className="bg-blue-800 text-white p-3 rounded-lg"
+              onClick={claim}
+            >
+              Claim 15 DTT
             </button>
-            
+
             <Link
               to={"/settings"}
               className={`
@@ -59,8 +59,6 @@ const Navbar = () => {
                 </button>
 
                 <ConnectButton />
-
-
               </>
             )}
           </div>

@@ -4,6 +4,11 @@ import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 import { ChatGame, pairKey } from "../models/chatGame.model.js";
+import { analyzeMessageQuality } from "../services/aiModerationService.js";
+import {
+  deductLifeLinePoints,
+  initializeLifeLinePoints,
+} from "../services/lifeLineService.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -76,17 +81,28 @@ export const sendMessage = async (req, res) => {
     const now = new Date();
 
     if (bothDeposited) {
+      // Initialize life-line points when both users have deposited
+      if (game.userALifeLinePoints === undefined) {
+        game.userALifeLinePoints = 5;
+      }
+      if (game.userBLifeLinePoints === undefined) {
+        game.userBLifeLinePoints = 5;
+      }
+
       if (game.state !== "running") {
         // Start round
         game.state = "running";
         game.startedBy = String(senderId);
         game.startedAt = now;
-        game.expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+        game.expiresAt = new Date(now.getTime() + 1 * 60 * 1000);
         // Clear refund timer when game starts
         game.refundTimerStartedBy = undefined;
         game.refundTimerStartedAt = undefined;
         game.refundTimerExpiresAt = undefined;
         await game.save();
+
+        // Initialize life-line points
+        await initializeLifeLinePoints(game._id);
 
         const payload = {
           startedAt: game.startedAt.toISOString(),
@@ -119,10 +135,10 @@ export const sendMessage = async (req, res) => {
       const receiverDeposited = game.deposits.get(String(receiverId));
 
       if (senderDeposited && !receiverDeposited && !game.refundTimerExpiresAt) {
-        // Start refund timer - give recipient 5 minutes to stake back
+        // Start refund timer - give recipient 1 minute to stake back
         game.refundTimerStartedBy = String(senderId);
         game.refundTimerStartedAt = now;
-        game.refundTimerExpiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+        game.refundTimerExpiresAt = new Date(now.getTime() + 1 * 60 * 1000);
         await game.save();
 
         // Notify both users about refund timer
@@ -144,8 +160,67 @@ export const sendMessage = async (req, res) => {
     }
 
     res.status(201).json(newMessage);
+
+    // Analyze message in background (don't block response)
+    // Only analyze if both users have deposited (active staking session)
+    if (bothDeposited && game.state === "running") {
+      analyzeMessageInBackground(newMessage, game, senderId);
+    }
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * Analyze message in background for AI moderation
+ * @param {Object} message - Message document
+ * @param {Object} game - ChatGame document
+ * @param {string} senderId - Sender ID
+ */
+async function analyzeMessageInBackground(message, game, senderId) {
+  try {
+    // Get conversation history (last 10 messages between these two users)
+    const history = await Message.find({
+      $or: [
+        { senderId: game.userA, receiverId: game.userB },
+        { senderId: game.userB, receiverId: game.userA },
+      ],
+      createdAt: { $lt: message.createdAt },
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .then((msgs) => msgs.reverse()); // Chronological order
+
+    // AI Analysis
+    const analysis = await analyzeMessageQuality(message, history);
+
+    // Save analysis to message
+    message.aiAnalysis = {
+      ...analysis,
+    };
+    message.lifeLineDeduction = analysis.pointsToDeduct;
+    message.penaltyApplied = analysis.pointsToDeduct > 0;
+    await message.save();
+
+    // Apply penalties if needed
+    if (analysis.pointsToDeduct > 0) {
+      const result = await deductLifeLinePoints(
+        senderId,
+        game._id,
+        analysis.pointsToDeduct,
+        analysis.reasoning,
+        message._id
+      );
+
+      if (result.forfeited) {
+        console.log(
+          `User ${senderId} ran out of life-line points. Session forfeited.`
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error in background message analysis:", error);
+    // Don't penalize user if AI fails
+  }
+}
