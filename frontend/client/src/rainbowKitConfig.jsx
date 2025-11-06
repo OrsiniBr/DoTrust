@@ -9,7 +9,11 @@ export default getDefaultConfig({
   projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
   chains: [polygonAmoy],
   transports: {
-    [polygonAmoy.id]: http(import.meta.env.VITE_ALCHEMY_RPC_URL),
+    [polygonAmoy.id]: [
+      http(import.meta.env.VITE_ALCHEMY_RPC_URL),
+      http(import.meta.env.VITE_INFURA_RPC_URL),
+    ],
   },
   ssr: false,
 });
+ 
