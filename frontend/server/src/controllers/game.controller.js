@@ -1,6 +1,16 @@
 import { ChatGame, pairKey } from "../models/chatGame.model.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
-import { signCompensationMessage, signRefundMessage } from "../lib/signer.js";
+import {
+  signCompensationMessage,
+  signRefundMessage,
+  signStakeMessage,
+} from "../lib/signer.js";
+import {
+  getUserNonce,
+  stakeViaRelayer,
+  compensateOnChain,
+  refundOnChain,
+} from "../lib/blockchain.js";
 
 const ROUND_MS = 1 * 60 * 1000; // 1 minute
 
@@ -277,5 +287,189 @@ export const signRefund = async (req, res) => {
   } catch (err) {
     console.error("Error signing refund:", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * Get user's nonce for staking
+ * GET /api/game/nonce/:userAddress
+ */
+export const getUserNonceEndpoint = async (req, res) => {
+  try {
+    const { userAddress } = req.params;
+
+    if (!userAddress) {
+      return res.status(400).json({
+        message: "Missing userAddress parameter",
+      });
+    }
+
+    const nonce = await getUserNonce(userAddress);
+
+    res.json({
+      nonce,
+    });
+  } catch (error) {
+    console.error("Error getting user nonce:", error);
+    res.status(500).json({
+      message: error.message || "Failed to get user nonce",
+      error: error.reason || error.message,
+    });
+  }
+};
+
+/**
+ * Stake via relayer (backend pays gas)
+ * POST /api/game/stake
+ * Body: { userAddress, signature, nonce, chainId }
+ */
+export const stakeViaRelayerEndpoint = async (req, res) => {
+  try {
+    const { userAddress, signature, nonce, chainId } = req.body;
+
+    if (!userAddress || !signature || nonce === undefined || !chainId) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: userAddress, signature, nonce, chainId",
+      });
+    }
+
+    // Verify nonce matches current nonce on contract
+    const currentNonce = await getUserNonce(userAddress);
+    if (Number(nonce) !== currentNonce) {
+      return res.status(400).json({
+        message: `Invalid nonce. Expected ${currentNonce}, got ${nonce}`,
+      });
+    }
+
+    // Call stakeViaRelayer on the contract (backend pays gas)
+    const result = await stakeViaRelayer(userAddress, nonce, signature);
+
+    res.json({
+      success: true,
+      txHash: result.txHash,
+      nonce,
+      message: "Stake successful via relayer",
+    });
+  } catch (error) {
+    console.error("Error staking via relayer:", error);
+    res.status(500).json({
+      message: error.message || "Failed to stake via relayer",
+      error: error.reason || error.message,
+    });
+  }
+};
+
+/**
+ * Compensate (backend pays gas)
+ * POST /api/game/compensate
+ * Body: { recipient, chainId }
+ */
+export const compensateEndpoint = async (req, res) => {
+  try {
+    const { recipient, chainId } = req.body;
+
+    if (!recipient || !chainId) {
+      return res.status(400).json({
+        message: "Missing required fields: recipient, chainId",
+      });
+    }
+
+    const contractAddress = process.env.CHAT_CONTRACT_ADDRESS;
+    if (!contractAddress) {
+      return res
+        .status(500)
+        .json({ message: "CHAT_CONTRACT_ADDRESS not configured" });
+    }
+
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      return res.status(500).json({ message: "Private key not configured" });
+    }
+
+    // Generate a unique nonce (using timestamp)
+    const nonce = Date.now();
+
+    // Generate signature
+    const signature = signCompensationMessage(
+      recipient,
+      nonce,
+      contractAddress,
+      chainId,
+      privateKey
+    );
+
+    // Call compensate on the contract (backend pays gas)
+    const result = await compensateOnChain(recipient, nonce, signature);
+
+    res.json({
+      success: true,
+      txHash: result.txHash,
+      nonce,
+      message: "Compensation successful",
+    });
+  } catch (error) {
+    console.error("Error compensating:", error);
+    res.status(500).json({
+      message: error.message || "Failed to compensate",
+      error: error.reason || error.message,
+    });
+  }
+};
+
+/**
+ * Refund (backend pays gas)
+ * POST /api/game/refund
+ * Body: { recipient, chainId }
+ */
+export const refundEndpoint = async (req, res) => {
+  try {
+    const { recipient, chainId } = req.body;
+
+    if (!recipient || !chainId) {
+      return res.status(400).json({
+        message: "Missing required fields: recipient, chainId",
+      });
+    }
+
+    const contractAddress = process.env.CHAT_CONTRACT_ADDRESS;
+    if (!contractAddress) {
+      return res
+        .status(500)
+        .json({ message: "CHAT_CONTRACT_ADDRESS not configured" });
+    }
+
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      return res.status(500).json({ message: "Private key not configured" });
+    }
+
+    // Generate a unique nonce (using timestamp)
+    const nonce = Date.now();
+
+    // Generate signature
+    const signature = signRefundMessage(
+      recipient,
+      nonce,
+      contractAddress,
+      chainId,
+      privateKey
+    );
+
+    // Call refund on the contract (backend pays gas)
+    const result = await refundOnChain(recipient, nonce, signature);
+
+    res.json({
+      success: true,
+      txHash: result.txHash,
+      nonce,
+      message: "Refund successful",
+    });
+  } catch (error) {
+    console.error("Error refunding:", error);
+    res.status(500).json({
+      message: error.message || "Failed to refund",
+      error: error.reason || error.message,
+    });
   }
 };

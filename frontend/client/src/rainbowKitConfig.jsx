@@ -2,7 +2,7 @@
 
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { polygon} from "wagmi/chains";
-import { http } from "wagmi";
+// import { http } from "wagmi";
 
 export default getDefaultConfig({
   appName: "Cross-Credit Lending",

@@ -9,6 +9,10 @@ import {
   triggerCompensation,
   signCompensation,
   signRefund,
+  getUserNonceEndpoint,
+  stakeViaRelayerEndpoint,
+  compensateEndpoint,
+  refundEndpoint,
 } from "../controllers/game.controller.js";
 
 const router = express.Router();
@@ -21,5 +25,10 @@ router.post("/expire/:peerId", protectRoute, expireAndSetWinner);
 router.post("/compensate/:peerId", protectRoute, triggerCompensation);
 router.post("/sign-compensate", protectRoute, signCompensation);
 router.post("/sign-refund", protectRoute, signRefund);
+// New gasless endpoints (backend pays gas)
+router.get("/nonce/:userAddress", protectRoute, getUserNonceEndpoint);
+router.post("/stake", protectRoute, stakeViaRelayerEndpoint);
+router.post("/compensate", protectRoute, compensateEndpoint);
+router.post("/refund", protectRoute, refundEndpoint);
 
 export default router;
