@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import useCompensate from "../hooks/useCompensate";
-import { axiosInstance } from "../lib/axios";
 import { DollarSign, Trophy, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -20,29 +19,20 @@ const CompensationPrompt = ({ selectedUser }) => {
     if (isProcessing) return;
     setIsProcessing(true);
 
-    // try {
-    //   // First trigger the compensation event on the server
-    //   await axiosInstance.post(`/game/compensate/${chatId}`);
-
-    //   // Then execute the on-chain compensation
-    //   // const recipientAddress = authUser.walletAddress; // Assuming user has wallet address
-    //   // const snubberAddress = selectedUser.walletAddress; // Assuming peer has wallet address
-
-    //   // if (!recipientAddress || !snubberAddress) {
-    //   //   toast.error("Wallet addresses not available");
-    //   //   return;
-    //   // }
-
-    //     const success = await compensate();
-    //     if (success) {
-    //       toast.success("Compensation processed successfully!");
-    //     }
-    //   } catch (error) {
-    //     console.error("Compensation error:", error);
-    //     toast.error("Failed to process compensation");
-    //   } finally {
-    //     setIsProcessing(false);
-    //   }
+    try {
+      // Execute the on-chain compensation with ECDSA signature
+      const success = await compensate();
+      if (success) {
+        toast.success("Compensation processed successfully!", {
+          description: "You received $5 from the snubber's stake",
+        });
+      }
+    } catch (error) {
+      console.error("Compensation error:", error);
+      toast.error("Failed to process compensation");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!winner) return null;
@@ -83,7 +73,14 @@ const CompensationPrompt = ({ selectedUser }) => {
             className="btn btn-primary w-full"
           >
             <DollarSign className="w-4 h-4 mr-2" />
-            {isProcessing ? "Processing..." : "Claim Compensation"}
+            {isProcessing ? (
+              <>
+                <span className="loading loading-spinner loading-sm"></span>
+                Processing...
+              </>
+            ) : (
+              "Claim Compensation ($5)"
+            )}
           </button>
         )}
 
