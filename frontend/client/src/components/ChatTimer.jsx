@@ -37,7 +37,7 @@ const ChatTimer = ({ selectedUser }) => {
           </span>
         </div>
         <p className="text-sm text-base-content/70 text-center mt-1">
-          Time ran out and no reply was received
+          Time ran out and no reply was received.
         </p>
       </div>
     );
